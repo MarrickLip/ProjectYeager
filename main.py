@@ -153,52 +153,21 @@ class BladeElement:
 
 		self._power_coefficient = power_extracted / total_power
 
-	@property
-	def axial_induction(self):
-		self._solve()
-		return self._axial_induction
+	def __getattr__(self, item):
+		solved_values = ['axial_induction',
+		                 'angular_induction',
+		                 'chord_length',
+		                 'solidity',
+		                 'alpha',
+		                 'blade_angle',
+		                 'wind_angle',
+		                 'tangential_pressure',
+		                 'torque',
+		                 'power_coefficient',
+		                 ]
 
-	@property
-	def angular_induction(self):
-		self._solve()
-		return self._angular_induction
-
-	@property
-	def chord_length(self):
-		self._solve()
-		return self._chord_length
-
-	@property
-	def solidity(self):
-		self._solve()
-		return self._solidity
-
-	@property
-	def alpha(self):
-		self._solve()
-		return self._alpha
-
-	@property
-	def blade_angle(self):
-		self._solve()
-		return self._blade_angle
-
-	@property
-	def wind_angle(self):
-		self._solve()
-		return self._wind_angle
-
-	@property
-	def tangential_pressure(self):
-		self._solve()
-		return self._tangential_pressure
-
-	@property
-	def torque(self):
-		self._solve()
-		return self._torque
-
-	@property
-	def power_coefficient(self):
-		self._solve()
-		return self._power_coefficient
+		if item in solved_values:
+			self._solve()
+			return self.__getattribute__(item)
+		else:
+			raise ValueError(item)
