@@ -1,9 +1,7 @@
-from math import pi, sqrt, sin, cos, atan2, acos, exp, pow
+from math import pi, sqrt, sin, cos, atan2, acos, exp, pow, atan
 import numpy as np
 
-from airfoil import Airfoil
-
-rho_air = 12
+rho_air = 1.225
 
 
 class WindTurbine:
@@ -14,6 +12,10 @@ class WindTurbine:
 	def solve(self, wind_speed, torque, blade_speed):
 		target_torque = torque / self.blade_count
 		blade = BladeDesign(self.airfoil, self.blade_count, wind_speed, target_torque, blade_speed)
+
+		#temp
+		blade._solve()
+
 		return blade
 
 class BladeDesign:
@@ -23,7 +25,7 @@ class BladeDesign:
 		self.blade_count = blade_count
 		self.wind_speed = wind_speed
 		self.target_torque = target_torque
-		self.blade_count = blade_speed
+		self.blade_speed = blade_speed
 
 	def _solve(self):
 		tol = 0.5 / 100
@@ -88,25 +90,25 @@ class BladeElement:
 	def _solve_geometry(self):
 		tol = 0.5 / 100
 
-		axial_induction = 1/3
-		angular_induction = 0
-
-		alpha = self.airfoil.optimal_alpha()
-		ideal_alpha = alpha
-
 		chord_length = None
 		solidity = None
-		blade_angle = None
 		wind_angle = None
+
+		axial_induction = 1/3
+		angular_induction = 5
+
+		alpha = self.airfoil.optimal_alpha
+		ideal_alpha = alpha
+
+		blade_angle = atan2(2, 3 * self.local_ratio) - ideal_alpha
 
 		converged = False
 		while not converged:
 			old = (axial_induction, angular_induction)
 
-			wind_angle = atan2(1 - axial_induction, self.local_ratio * (1 + angular_induction))
-			blade_angle = atan2(2, 3 * self.local_ratio) - ideal_alpha
-
+			wind_angle = atan((1 - axial_induction) / (self.local_ratio * (1 + angular_induction)))
 			alpha = wind_angle - blade_angle
+
 			C_L = self.airfoil.lift_coefficient(alpha)
 			C_n = self.airfoil.normal_component(alpha, wind_angle)
 			C_t = self.airfoil.tangential_component(alpha, wind_angle)
@@ -117,8 +119,8 @@ class BladeElement:
 			prandtl_f = (self.blade_count * (self.max_radius - self.radius)) / (2 * self.radius * sin(wind_angle))
 			prandtl_F = (2 / pi) * acos(exp(-prandtl_f))
 
-			axial_induction = 1 / ((4 * prandtl_F * (sin(wind_angle) ** 2)) / (solidity * C_n) + 1)
-			angular_induction = 1 / ((4 * prandtl_F * sin(wind_angle) * cos(wind_angle)) / (solidity * C_t) - 1)
+			axial_induction = (solidity * C_n) / ((4 * prandtl_F * pow(sin(wind_angle), 2)) + (solidity * C_n))
+			angular_induction = (solidity * C_t) / ((4 * prandtl_F * sin(wind_angle) * cos(wind_angle)) - (solidity * C_t))
 
 			new = (axial_induction, angular_induction)
 			pct_change = (abs(old[i] - new[i]) / new[i] for i in (0, 1))
@@ -154,20 +156,13 @@ class BladeElement:
 		self._power_coefficient = power_extracted / total_power
 
 	def __getattr__(self, item):
-		solved_values = ['axial_induction',
-		                 'angular_induction',
-		                 'chord_length',
-		                 'solidity',
-		                 'alpha',
-		                 'blade_angle',
-		                 'wind_angle',
-		                 'tangential_pressure',
-		                 'torque',
-		                 'power_coefficient',
+		solved_values = ['axial_induction', 'angular_induction',
+		                 'chord_length', 'solidity', 'alpha',
+		                 'blade_angle', 'wind_angle', 'tangential_pressure',
+		                 'torque', 'power_coefficient',
 		                 ]
-
 		if item in solved_values:
 			self._solve()
-			return self.__getattribute__(item)
+			return self.__getattribute__('_' + item)
 		else:
 			raise ValueError(item)

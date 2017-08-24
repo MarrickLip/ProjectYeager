@@ -1,4 +1,4 @@
-from math import sin, cos
+from math import sin, cos, pi
 from glob import glob
 import os
 from collections import defaultdict
@@ -86,7 +86,7 @@ class Airfoil:
 		files = ()
 		weights = ()
 		if reynolds in traces:
-			files = (traces[reynolds])
+			files = (traces[reynolds],)
 			weights = (1,)
 		else:
 			closest_above = min(r for r in traces if r > reynolds)
@@ -102,7 +102,10 @@ class Airfoil:
 		drag_coefficients = []
 		for file in files:
 			data = np.genfromtxt(file, skip_header=11, usecols=(0, 1, 2), delimiter=',')
-			alphas.append(data[:, 0])
+
+			alpha = data[:, 0] * (pi / 180)
+			alphas.append(alpha)
+
 			lift_coefficients.append(data[:, 1])
 			drag_coefficients.append(data[:, 2])
 
