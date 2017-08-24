@@ -161,6 +161,7 @@ class BladeElement:
 		                 'blade_angle', 'wind_angle', 'tangential_pressure',
 		                 'torque', 'power_coefficient',
 		                 ]
+
 		if item in solved_values:
 			self._solve()
 			return self.__getattribute__('_' + item)
