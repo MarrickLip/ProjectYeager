@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 import linecache
 import numpy as np
+import warnings
 
 class Airfoil:
 	def __init__(self, reynolds, ncrit):
@@ -19,16 +20,24 @@ class Airfoil:
 		self._drag_coefficients = None
 
 	def lift_coefficient(self, alpha):
-		if self.min_alpha <= alpha <= self.max_alpha:
-			return np.interp(alpha, self._alphas, self._lift_coefficients)
+		if alpha > self.max_alpha:
+			warnings.warn('Extrapolating lift_coefficient')
+			return self._lift_coefficients[-1]
+		elif alpha < self.min_alpha:
+			warnings.warn('Extrapolating lift_coefficient')
+			return self._lift_coefficients[0]
 		else:
-			raise ValueError('Cannot extrapolate lift coefficients.')
+			return np.interp(alpha, self._alphas, self._lift_coefficients)
 
 	def drag_coefficient(self, alpha):
-		if self.min_alpha <= alpha <= self.max_alpha:
-			return np.interp(alpha, self._alphas, self._drag_coefficients)
+		if alpha > self.max_alpha:
+			warnings.warn('Extrapolating drag_coefficient')
+			return self._drag_coefficients[-1]
+		elif alpha < self.min_alpha:
+			warnings.warn('Extrapolating drag_coefficient')
+			return self._drag_coefficients[0]
 		else:
-			raise ValueError('Cannot extrapolate drag coefficients.')
+			return np.interp(alpha, self._alphas, self._drag_coefficients)
 
 	def _find_optimal_alpha(self):
 		step = 0.1

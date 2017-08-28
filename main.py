@@ -101,12 +101,13 @@ class BladeElement:
 		ideal_alpha = alpha
 
 		blade_angle = atan2(2, 3 * self.local_ratio) - ideal_alpha
+		wind_angle = (2/3) * atan2(1, self.local_ratio)
 
 		converged = False
 		while not converged:
 			old = (axial_induction, angular_induction)
 
-			wind_angle = atan((1 - axial_induction) / (self.local_ratio * (1 + angular_induction)))
+			# wind_angle = atan((1 - axial_induction) / (self.local_ratio * (1 + angular_induction)))
 			alpha = wind_angle - blade_angle
 
 			C_L = self.airfoil.lift_coefficient(alpha)
