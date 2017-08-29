@@ -28,11 +28,11 @@ class BladeDesign:
 		self.blade_speed = blade_speed
 
 	def _solve(self):
-		tol = 0.5 / 100
+		tol = 0.05 / 100
 		n_elements = 30
 
-		target_power = self.target_torque * self.blade_speed
-		C_P = 0.5  # initial guess
+		target_power = self.target_torque * self.blade_speed * self.blade_count
+		C_P = 0.45  # initial guess
 		radius = sqrt((2 * target_power) / (C_P * rho_air * pi * (self.wind_speed ** 3)))
 
 		converged = False
@@ -47,13 +47,13 @@ class BladeDesign:
 				elements.append(element)
 
 			torque = sum(element.torque for element in elements)
-
 			if (1 - tol) <= (torque / self.target_torque) <= (1 + tol):
 				converged = True
 			else:
-				new_radius = radius * (self.target_torque / torque)
-				radius = (0.8 * new_radius) + (0.2 * radius)
+				# torque increases with the square-ish of radius
+				radius = radius * sqrt(self.target_torque / torque)
 
+		self.elements = elements
 
 class BladeElement:
 	def __init__(self, r1, r2, max_radius, blade_count, local_ratio, wind_speed, airfoil):
@@ -92,10 +92,9 @@ class BladeElement:
 
 		chord_length = None
 		solidity = None
-		wind_angle = None
 
 		axial_induction = 1/3
-		angular_induction = 5
+		angular_induction = 0
 
 		alpha = self.airfoil.optimal_alpha
 		ideal_alpha = alpha
@@ -105,16 +104,18 @@ class BladeElement:
 
 		converged = False
 		while not converged:
+
 			old = (axial_induction, angular_induction)
 
 			# wind_angle = atan((1 - axial_induction) / (self.local_ratio * (1 + angular_induction)))
-			alpha = wind_angle - blade_angle
+			# alpha = wind_angle - blade_angle
 
 			C_L = self.airfoil.lift_coefficient(alpha)
 			C_n = self.airfoil.normal_component(alpha, wind_angle)
 			C_t = self.airfoil.tangential_component(alpha, wind_angle)
 
 			chord_length = (8 * pi * self.radius) * (1 - cos(wind_angle)) / (self.blade_count * C_L)
+
 			solidity = (self.blade_count * chord_length) / (2 * pi * self.radius)
 
 			prandtl_f = (self.blade_count * (self.max_radius - self.radius)) / (2 * self.radius * sin(wind_angle))
@@ -125,6 +126,7 @@ class BladeElement:
 
 			new = (axial_induction, angular_induction)
 			pct_change = (abs(old[i] - new[i]) / new[i] for i in (0, 1))
+
 			if max(pct_change) <= tol:
 				converged = True
 
@@ -137,16 +139,14 @@ class BladeElement:
 		self._wind_angle = wind_angle
 
 	def _solve_torque(self):
-		C_L = self.airfoil.lift_coefficient(self._alpha)
-		C_D = self.airfoil.lift_coefficient(self._alpha)
 
 		term_1 = 0.5 * rho_air * self._chord_length
 		term_2 = pow(self.wind_speed, 2) * pow(1 - self._axial_induction, 2) / pow(sin(self._wind_angle), 2)
-		term_3 = (C_L * sin(self._wind_angle)) - (C_D * cos(self._wind_angle))
+		term_3 = self.airfoil.tangential_component(self._alpha, self._wind_angle)
 
 		tangential_pressure = term_1 * term_2 * term_3
 		self._tangential_pressure = tangential_pressure
-		self._torque = tangential_pressure * (self.r2 - self.r1)
+		self._torque = tangential_pressure * (self.r2 - self.r1) * self.radius
 
 		area = pi * (pow(self.r2, 2) - pow(self.r1, 2))
 		total_power = 0.5 * rho_air * area * pow(self.wind_speed, 3)

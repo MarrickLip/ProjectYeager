@@ -31,11 +31,19 @@ class Airfoil:
 
 	def drag_coefficient(self, alpha):
 		if alpha > self.max_alpha:
-			warnings.warn('Extrapolating drag_coefficient')
-			return self._drag_coefficients[-1]
+			result = self._drag_coefficients[-1]
+
+			print('Warning: Extrapolating drag_coefficient:')
+			print('\t', 'alpha={}, max_alpha={}, result={}\n'.format(alpha, self.max_alpha, result))
+
+			return result
 		elif alpha < self.min_alpha:
-			warnings.warn('Extrapolating drag_coefficient')
-			return self._drag_coefficients[0]
+			print('Warning: Extrapolating drag_coefficient:')
+
+			result = self._drag_coefficients[0]
+			print('\t', 'alpha={}, min_alpha={}, result={}\n'.format(alpha, self.min_alpha, result))
+
+			return result
 		else:
 			return np.interp(alpha, self._alphas, self._drag_coefficients)
 
@@ -88,6 +96,7 @@ class Airfoil:
 			traces_by_ncrit[ncrit_value][reynolds_value] = csv_path
 
 		if ncrit not in traces_by_ncrit:
+			print(path)
 			raise FileNotFoundError('Cannot find files for ncrit of ' + str(ncrit))
 
 		traces = traces_by_ncrit[ncrit]
