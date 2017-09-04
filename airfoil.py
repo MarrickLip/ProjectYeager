@@ -19,6 +19,8 @@ class Airfoil:
 		self._lift_coefficients = None
 		self._drag_coefficients = None
 
+		self.name = 'Airfoil Who Wishes to Remain Anonymous'
+
 	def lift_coefficient(self, alpha):
 		if alpha > self.max_alpha:
 			warnings.warn('Extrapolating lift_coefficient')
@@ -149,5 +151,6 @@ class Airfoil:
 
 		airfoil.min_alpha = min(airfoil._alphas)
 		airfoil.max_alpha = max(airfoil._alphas)
+		airfoil.name = path.split('\\')[-1].split('/')[-1]
 
 		return airfoil
