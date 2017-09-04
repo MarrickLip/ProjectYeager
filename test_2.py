@@ -22,8 +22,10 @@ import time
 start_time = time.time()
 i = 0
 
+max_speeds = []
+
 paths = glob(r'C:\Users\mlip814\airfoil_data\airfoil_data\*')
-for path in sample(paths, 10):
+for path in sample(paths, len(paths)):
     try:
         airfoil = Airfoil.from_folder(path, 100000, 9)
 
@@ -31,20 +33,17 @@ for path in sample(paths, 10):
         torque = resistance(blade_speed) / 3  # (per blade)
         blade.design(knots(10), torque, rpm(140))
 
-        wind_speeds = np.linspace(8, 12, 5)
+        wind_speeds = np.linspace(8, 12, 3)
         results = [blade.solve(knots(wind_speed), system) for wind_speed in wind_speeds]
 
         blade_speeds = [rads(result[0]) for result in results]
         #torques = [result[1] for result in results]
         powers = [result[0] * result[1] for result in results]
 
-        for a, b in zip(blade_speeds, powers):
-            print(a, b)
-
-        print('*'*10)
-
         ax1.plot(wind_speeds, blade_speeds)
         ax2.plot(wind_speeds, powers)
+
+        max_speeds.append([airfoil.name, max(blade_speeds), blade.radius])
     except:
         pass
 
@@ -55,3 +54,9 @@ print(time.time() - start_time)
 if input('Save?') != '':
     plt.savefig('image.png')
 plt.show()
+
+airfoils = sorted(max_speeds, key=lambda x: x[1])
+
+with open('foilsew34.csv', 'w') as f:
+    for name, max_speed, radius in airfoils:
+        f.write(name + ',' + str(max_speed) + ',' + str(radius) + '\n')
